@@ -4,7 +4,7 @@ use bevy::ecs::{
     world::unsafe_world_cell::UnsafeWorldCell,
 };
 use bevy::{input::keyboard::KeyboardInput, prelude::*};
-use bevy_egui::egui::{self, Align, ScrollArea, TextEdit};
+use bevy_egui::{egui::{self, Align, ScrollArea, TextEdit}, EguiContext};
 use bevy_egui::egui::{text::LayoutJob, text_selection::CCursorRange};
 use bevy_egui::egui::{Context, Id};
 use bevy_egui::{
@@ -240,6 +240,8 @@ pub struct ConsoleConfiguration {
     pub foreground_color: Color32,
     /// Number of suggested commands to show
     pub num_suggestions: usize,
+    /// Egui context
+    pub egui_context: Option<EguiContext>,
 }
 
 impl Default for ConsoleConfiguration {
@@ -261,6 +263,7 @@ impl Default for ConsoleConfiguration {
             background_color: Color32::from_black_alpha(102),
             foreground_color: Color32::LIGHT_GRAY,
             num_suggestions: 4,
+            egui_context: None,
         }
     }
 }
@@ -379,7 +382,7 @@ fn style_ansi_text(str: &str, config: &ConsoleConfiguration) -> LayoutJob {
 }
 
 pub(crate) fn console_ui(
-    mut egui_context: EguiContexts,
+    // mut egui_context: EguiContexts,
     config: Res<ConsoleConfiguration>,
     mut keyboard_input_events: EventReader<KeyboardInput>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -389,13 +392,10 @@ pub(crate) fn console_ui(
 ) {
     let keyboard_input_events = keyboard_input_events.read().collect::<Vec<_>>();
 
-    // If there is no egui context, return, this can happen when exiting the app
-    let ctx = if let Some(ctxt) = egui_context.try_ctx_mut() {
-        ctxt
-    } else {
-        return;
-    };
-
+    let Some(ectx) = config.egui_context.as_ref() else { return; };
+    let mut clone = ectx.clone();
+    let ctx = clone.get_mut();
+    
     let pressed = keyboard_input_events
         .iter()
         .any(|code| console_key_pressed(code, &config.keys));
